@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+
+# Configuraciones locales (contienen contraseñas y datos sensibles)
+# Estas se guardan en ~/.youtube_downloader/ y NO deben subirse
+*.json
+!config/ssh_config.example.json
+!package.json
+!package-lock.json
+
+# Directorio de configuraciones del usuario (local)
+.youtube_downloader/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Logs
+*.log
+
+# Archivos temporales
+/tmp/
+*.tmp
+*.temp
