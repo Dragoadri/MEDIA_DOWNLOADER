@@ -11,15 +11,16 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from utils.ssh_client import SSHClient
+from config import MATRIX_COLORS
 
 
 class SSHBrowserDialog(QDialog):
     """Diálogo para explorar carpetas remotas por SSH"""
-    
+
     def __init__(self, parent=None, ssh_config=None):
         """
         Inicializa el explorador SSH
-        
+
         Args:
             parent: Widget padre
             ssh_config: Diccionario con configuración SSH (host, port, username, password, key_file)
@@ -29,69 +30,104 @@ class SSHBrowserDialog(QDialog):
         self.ssh_client = None
         self.selected_path = None
         self.current_path = "/"
-        
-        self.setWindowTitle("🌐 Explorar Carpetas del Servidor")
-        self.setMinimumSize(600, 500)
+
+        self.setWindowTitle(">> SSH FILE BROWSER")
+        self.setMinimumSize(650, 550)
         self.init_ui()
-        self.apply_dark_theme()
-        
+        self.apply_matrix_theme()
+
         if ssh_config:
             self.connect_and_load()
-    
-    def apply_dark_theme(self):
-        """Aplica el tema oscuro al diálogo"""
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #1e1e1e;
-                color: #e0e0e0;
-            }
-            QLineEdit {
-                padding: 8px;
-                border: 2px solid #444444;
-                border-radius: 5px;
+
+    def apply_matrix_theme(self):
+        """Aplica el tema Matrix al diálogo"""
+        mc = MATRIX_COLORS
+        self.setStyleSheet(f"""
+            QDialog {{
+                background-color: {mc['background']};
+                color: {mc['text']};
+            }}
+            QLineEdit {{
+                padding: 10px;
+                border: 1px solid {mc['border_dim']};
+                border-radius: 4px;
                 font-size: 11pt;
-                background-color: #2d2d2d;
-                color: #e0e0e0;
-            }
-            QLineEdit:focus {
-                border: 2px solid #4CAF50;
-                background-color: #353535;
-            }
-            QPushButton {
-                padding: 8px 15px;
-                border-radius: 5px;
+                background-color: {mc['background_secondary']};
+                color: {mc['text']};
+                font-family: 'Consolas', 'Monaco', monospace;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {mc['accent']};
+                background-color: {mc['background_tertiary']};
+            }}
+            QPushButton {{
+                padding: 10px 18px;
+                border-radius: 4px;
                 font-weight: bold;
-                background-color: #3d3d3d;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-            }
-            QPushButton:hover {
-                background-color: #4d4d4d;
-            }
-            QPushButton:pressed {
-                background-color: #2d2d2d;
-            }
-            QTreeWidget {
-                background-color: #1e1e1e;
-                color: #e0e0e0;
-                border: 2px solid #444444;
+                background-color: {mc['background_tertiary']};
+                color: {mc['text']};
+                border: 1px solid {mc['border_dim']};
+                font-family: 'Consolas', monospace;
+            }}
+            QPushButton:hover {{
+                background-color: {mc['accent_dark']};
+                border: 1px solid {mc['accent']};
+                color: {mc['text_bright']};
+            }}
+            QPushButton:pressed {{
+                background-color: {mc['background_secondary']};
+            }}
+            QTreeWidget {{
+                background-color: {mc['background']};
+                color: {mc['text']};
+                border: 1px solid {mc['border_dim']};
+                border-radius: 4px;
+                font-size: 11pt;
+                font-family: 'Consolas', 'Monaco', monospace;
+            }}
+            QTreeWidget::item {{
+                padding: 6px;
+            }}
+            QTreeWidget::item:selected {{
+                background-color: {mc['accent_dark']};
+                color: {mc['text_bright']};
+            }}
+            QTreeWidget::item:hover {{
+                background-color: {mc['background_tertiary']};
+            }}
+            QTreeWidget::branch {{
+                background-color: {mc['background']};
+            }}
+            QHeaderView::section {{
+                background-color: {mc['background_secondary']};
+                color: {mc['accent']};
+                padding: 8px;
+                border: none;
+                border-bottom: 1px solid {mc['border_dim']};
+                font-weight: bold;
+            }}
+            QLabel {{
+                color: {mc['text']};
+                font-size: 11pt;
+                font-family: 'Consolas', monospace;
+            }}
+            QScrollBar:vertical {{
+                border: none;
+                background-color: {mc['background_secondary']};
+                width: 10px;
                 border-radius: 5px;
-                font-size: 11pt;
-            }
-            QTreeWidget::item {
-                padding: 5px;
-            }
-            QTreeWidget::item:selected {
-                background-color: #4CAF50;
-                color: white;
-            }
-            QTreeWidget::item:hover {
-                background-color: #353535;
-            }
-            QLabel {
-                color: #e0e0e0;
-                font-size: 11pt;
-            }
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {mc['accent_dark']};
+                border-radius: 5px;
+                min-height: 30px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {mc['accent']};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0px;
+            }}
         """)
     
     def init_ui(self):
@@ -106,46 +142,78 @@ class SSHBrowserDialog(QDialog):
         self.path_input.setText(self.current_path)
         self.path_input.setPlaceholderText("/home/usuario/...")
         self.path_input.returnPressed.connect(self.navigate_to_path)
-        
-        nav_button = QPushButton("📂 Ir")
+
+        nav_button = QPushButton("IR")
         nav_button.clicked.connect(self.navigate_to_path)
-        
-        home_button = QPushButton("🏠 Inicio")
+
+        home_button = QPushButton("HOME")
         home_button.clicked.connect(self.go_home)
-        
+
         nav_layout.addWidget(QLabel("Ruta:"))
         nav_layout.addWidget(self.path_input)
         nav_layout.addWidget(nav_button)
         nav_layout.addWidget(home_button)
-        
+
         layout.addLayout(nav_layout)
-        
+
         # Árbol de directorios
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabel("Carpetas")
+        self.tree.setHeaderLabel(">> DIRECTORIOS")
         self.tree.itemDoubleClicked.connect(self.on_item_double_clicked)
         self.tree.itemClicked.connect(self.on_item_clicked)
         layout.addWidget(self.tree)
-        
+
         # Botones
         buttons_layout = QHBoxLayout()
-        
-        self.select_button = QPushButton("✅ Seleccionar Carpeta")
-        self.select_button.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
+
+        self.select_button = QPushButton(">> SELECCIONAR")
+        self.select_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {MATRIX_COLORS['accent_dark']};
+                color: {MATRIX_COLORS['text_bright']};
                 font-weight: bold;
-                padding: 10px;
-            }
+                padding: 12px 20px;
+                border: 2px solid {MATRIX_COLORS['accent']};
+            }}
+            QPushButton:hover {{
+                background-color: {MATRIX_COLORS['accent']};
+                color: {MATRIX_COLORS['background']};
+            }}
+            QPushButton:disabled {{
+                background-color: {MATRIX_COLORS['background_tertiary']};
+                color: {MATRIX_COLORS['border_dim']};
+                border: 2px solid {MATRIX_COLORS['border_dim']};
+            }}
         """)
         self.select_button.clicked.connect(self.accept_selection)
         self.select_button.setEnabled(False)
-        
-        cancel_button = QPushButton("❌ Cancelar")
+
+        cancel_button = QPushButton("CANCELAR")
+        cancel_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {MATRIX_COLORS['background_tertiary']};
+                color: {MATRIX_COLORS['error']};
+                border: 1px solid {MATRIX_COLORS['error']};
+            }}
+            QPushButton:hover {{
+                background-color: #330011;
+                color: #FF3366;
+            }}
+        """)
         cancel_button.clicked.connect(self.reject)
-        
-        refresh_button = QPushButton("🔄 Actualizar")
+
+        refresh_button = QPushButton("ACTUALIZAR")
+        refresh_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {MATRIX_COLORS['background_tertiary']};
+                color: {MATRIX_COLORS['info']};
+                border: 1px solid {MATRIX_COLORS['info']};
+            }}
+            QPushButton:hover {{
+                background-color: #003344;
+                color: #00EEFF;
+            }}
+        """)
         refresh_button.clicked.connect(self.refresh_current_directory)
         
         buttons_layout.addWidget(refresh_button)
@@ -206,7 +274,7 @@ class SSHBrowserDialog(QDialog):
             # Añadir item para subir un nivel
             if path != "/":
                 parent_item = QTreeWidgetItem(self.tree)
-                parent_item.setText(0, "📁 ..")
+                parent_item.setText(0, "[..] Parent Directory")
                 parent_item.setData(0, Qt.UserRole, "..")
             
             # Añadir carpetas
@@ -218,7 +286,7 @@ class SSHBrowserDialog(QDialog):
                     stat = self.ssh_client.sftp.stat(item_path)
                     if stat.st_mode & 0o040000:  # Es un directorio
                         tree_item = QTreeWidgetItem(self.tree)
-                        tree_item.setText(0, f"📁 {item}")
+                        tree_item.setText(0, f"[DIR] {item}")
                         tree_item.setData(0, Qt.UserRole, item_path)
                 except:
                     pass

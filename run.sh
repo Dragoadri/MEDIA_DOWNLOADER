@@ -1,35 +1,81 @@
 #!/bin/bash
-# Script para ejecutar la aplicación Descargador de YouTube
+# ============================================================================
+#  MEDIA DOWNLOADER - SCRIPT DE EJECUCION
+#  Version 2.0 - Matrix Edition
+# ============================================================================
 
-# Colores para mensajes
+# Colores Matrix
 GREEN='\033[0;32m'
+BRIGHT_GREEN='\033[1;32m'
+DARK_GREEN='\033[2;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+CYAN='\033[0;36m'
+NC='\033[0m'
 
-echo -e "${GREEN}🎬 Descargador de YouTube${NC}"
-echo "================================"
+# Funciones
+print_header() {
+    echo -e "${BRIGHT_GREEN}"
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║          >> MEDIA DOWNLOADER v2.0 <<                        ║"
+    echo "║              [ MATRIX EDITION ]                             ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
+}
+
+print_ok() {
+    echo -e "${BRIGHT_GREEN}[OK]${NC} ${GREEN}$1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}[!!]${NC} ${RED}$1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[??]${NC} ${YELLOW}$1${NC}"
+}
+
+print_info() {
+    echo -e "${CYAN}[--]${NC} ${CYAN}$1${NC}"
+}
+
+print_step() {
+    echo -e "${BRIGHT_GREEN}[>>]${NC} ${GREEN}$1${NC}"
+}
+
+# Mostrar header
+clear
+print_header
 echo ""
 
+# ============================================================================
+# VERIFICACIONES
+# ============================================================================
+
 # Verificar Python
+print_step "Verificando Python..."
 if ! command -v python3 &> /dev/null; then
-    echo -e "${RED}❌ Error: Python 3 no está instalado${NC}"
+    print_error "Python 3 no está instalado"
+    echo ""
+    print_info "Instala Python con: sudo apt install python3 python3-pip python3-venv"
     exit 1
 fi
-
-echo -e "${GREEN}✓${NC} Python encontrado: $(python3 --version)"
+PYTHON_VERSION=$(python3 --version 2>&1)
+print_ok "$PYTHON_VERSION"
 
 # Verificar FFmpeg
+print_step "Verificando FFmpeg..."
 if ! command -v ffmpeg &> /dev/null; then
-    echo -e "${YELLOW}⚠️  Advertencia: FFmpeg no está instalado${NC}"
-    echo "   Instálalo con: sudo apt install ffmpeg"
-    echo ""
+    print_warning "FFmpeg no está instalado"
+    print_info "Algunas funciones podrían no funcionar correctamente"
+    print_info "Instala con: sudo apt install ffmpeg"
+else
+    print_ok "FFmpeg disponible"
 fi
 
 # Verificar dependencias críticas del sistema para PySide6
-echo "Verificando dependencias críticas del sistema para PySide6..."
+print_step "Verificando dependencias del sistema..."
 
-# Lista de dependencias críticas (las más importantes)
 CRITICAL_DEPS=(
     "libxcb-cursor0"
     "libxcb-xinerama0"
@@ -44,95 +90,95 @@ CRITICAL_DEPS=(
     "libxcb-icccm4"
     "libxcb-shm0"
     "libxcb-util1"
-    "libxcb-dri3-0"
-    "libxcb-present0"
     "libxcb-xkb1"
     "libxkbcommon-x11-0"
     "libxkbcommon0"
-    "libxrender1"
-    "libfontconfig1"
-    "libx11-6"
-    "libx11-xcb1"
-    "libxext6"
-    "libxfixes3"
-    "libxi6"
-    "libxrandr2"
-    "libxss1"
-    "libxcursor1"
-    "libxcomposite1"
 )
 
-MISSING_DEPS=()
+MISSING_SYS_DEPS=()
 
-# Verificar cada dependencia crítica
 for dep in "${CRITICAL_DEPS[@]}"; do
-    # Verificar si el paquete está instalado
     if ! dpkg -l 2>/dev/null | grep -qE "^ii[[:space:]]+${dep}(:amd64)?[[:space:]]"; then
-        MISSING_DEPS+=("$dep")
+        MISSING_SYS_DEPS+=("$dep")
     fi
 done
 
-# Verificar libasound2 (puede ser libasound2t64 en Ubuntu 24.04+)
-if ! dpkg -l 2>/dev/null | grep -qE "^ii[[:space:]]+(libasound2|libasound2t64)(:amd64)?[[:space:]]"; then
-    MISSING_DEPS+=("libasound2t64")
-fi
-
-# Si faltan dependencias, informar al usuario
-if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
-    echo -e "${YELLOW}⚠️  Faltan algunas dependencias del sistema para PySide6${NC}"
-    echo "   Las siguientes dependencias son necesarias:"
-    for dep in "${MISSING_DEPS[@]}"; do
-        echo "   - $dep"
-    done
+if [ ${#MISSING_SYS_DEPS[@]} -gt 0 ]; then
+    print_warning "Faltan dependencias del sistema"
+    print_info "Ejecuta: ./install_dependencies.sh"
     echo ""
-    echo -e "${YELLOW}💡 Para instalarlas, ejecuta:${NC}"
-    echo "   ./install_dependencies.sh"
-    echo ""
-    echo "   O manualmente:"
-    echo "   sudo apt update && sudo apt install -y ${MISSING_DEPS[*]}"
-    echo ""
-    echo -e "${RED}❌ No se puede continuar sin estas dependencias${NC}"
+    print_error "No se puede continuar sin las dependencias"
     exit 1
 else
-    echo -e "${GREEN}✓${NC} Dependencias críticas del sistema verificadas"
+    print_ok "Dependencias del sistema verificadas"
 fi
 
-# Verificar si existe entorno virtual
+# Activar entorno virtual
+print_step "Buscando entorno virtual..."
+
 if [ -d "venv" ]; then
-    echo -e "${GREEN}✓${NC} Entorno virtual encontrado (venv)"
-    echo "Activando entorno virtual..."
+    print_ok "Entorno virtual encontrado (venv)"
     source venv/bin/activate
 elif [ -d ".venv" ]; then
-    echo -e "${GREEN}✓${NC} Entorno virtual encontrado (.venv)"
-    echo "Activando entorno virtual..."
+    print_ok "Entorno virtual encontrado (.venv)"
     source .venv/bin/activate
+else
+    print_warning "No se encontró entorno virtual"
+    print_info "Creando entorno virtual..."
+    python3 -m venv venv
+    source venv/bin/activate
+    print_ok "Entorno virtual creado y activado"
 fi
 
-# Verificar dependencias
-echo "Verificando dependencias..."
-MISSING_DEPS=()
+# Verificar dependencias de Python
+print_step "Verificando dependencias de Python..."
+
+MISSING_PY_DEPS=()
 
 if ! python3 -c "import PySide6" 2>/dev/null; then
-    MISSING_DEPS+=("PySide6")
+    MISSING_PY_DEPS+=("PySide6")
 fi
 
 if ! python3 -c "import yt_dlp" 2>/dev/null; then
-    MISSING_DEPS+=("yt-dlp")
+    MISSING_PY_DEPS+=("yt-dlp")
 fi
 
 if ! python3 -c "import paramiko" 2>/dev/null; then
-    MISSING_DEPS+=("paramiko")
+    MISSING_PY_DEPS+=("paramiko")
 fi
 
-if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
-    echo -e "${YELLOW}⚠️  Faltan dependencias de Python: ${MISSING_DEPS[*]}${NC}"
-    echo "   Instalando dependencias..."
-    pip install -r requirements.txt
+if [ ${#MISSING_PY_DEPS[@]} -gt 0 ]; then
+    print_warning "Faltan dependencias: ${MISSING_PY_DEPS[*]}"
+    print_info "Instalando dependencias..."
+    pip install -r requirements.txt -q
+    print_ok "Dependencias instaladas"
+else
+    print_ok "Todas las dependencias de Python disponibles"
 fi
 
 echo ""
-echo -e "${GREEN}🚀 Iniciando aplicación...${NC}"
+
+# ============================================================================
+# EJECUTAR APLICACION
+# ============================================================================
+
+echo -e "${BRIGHT_GREEN}"
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║                                                              ║"
+echo "║               >> INICIANDO APLICACION <<                     ║"
+echo "║                                                              ║"
+echo "║   Wake up, Neo...                                           ║"
+echo "║   The Matrix has you...                                     ║"
+echo "║   Follow the white rabbit.                                  ║"
+echo "║                                                              ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo -e "${NC}"
 echo ""
 
 # Ejecutar aplicación
 python3 main.py
+
+# Mensaje de cierre
+echo ""
+echo -e "${BRIGHT_GREEN}[>>]${NC} ${GREEN}Aplicación cerrada${NC}"
+echo ""

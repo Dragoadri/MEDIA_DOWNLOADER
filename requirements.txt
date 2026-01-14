@@ -1,3 +1,25 @@
-PySide6>=6.5.0
-yt-dlp>=2023.7.6
-paramiko>=3.0.0
+# ============================================================================
+# MEDIA DOWNLOADER - DEPENDENCIAS
+# ============================================================================
+# Instalar con: pip install -r requirements.txt
+# ============================================================================
+
+# --- INTERFAZ GRAFICA ---
+PySide6>=6.5.0                  # Framework Qt para la UI
+
+# --- DESCARGA DE MEDIOS ---
+yt-dlp>=2023.7.6                # Motor de descarga multi-plataforma
+
+# --- CONEXION REMOTA SSH ---
+paramiko>=3.0.0                 # Cliente SSH/SFTP
+
+# --- TRANSCRIPCION DE AUDIO ---
+openai-whisper>=20231117        # IA para transcripcion de audio a texto
+
+# --- DEPENDENCIAS DE WHISPER ---
+torch>=2.0.0                    # PyTorch (backend de Whisper)
+numpy>=1.21.0                   # Operaciones numericas
+ffmpeg-python>=0.2.0            # Wrapper de FFmpeg para Python
+
+# --- UTILIDADES ---
+tqdm>=4.64.0                    # Barras de progreso en consola

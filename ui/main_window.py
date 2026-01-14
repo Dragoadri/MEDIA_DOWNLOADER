@@ -20,10 +20,12 @@ from PySide6.QtGui import QFont, QIcon
 
 from config import (
     APP_NAME, DEFAULT_DOWNLOAD_FOLDER, VIDEO_QUALITIES,
-    WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_X, WINDOW_Y
+    WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_X, WINDOW_Y,
+    SUPPORTED_PLATFORMS, MATRIX_COLORS
 )
 from download.progress_hook import DownloadProgressHook
 from download.downloader import YouTubeDownloader
+from download.transcriber import AudioTranscriber
 from utils.validators import InputValidator
 from utils.ssh_client import SSHClient
 from utils.config_manager import SSHConfigManager
@@ -71,7 +73,7 @@ class YouTubeDownloaderApp(QMainWindow):
     def on_download_finished(self, success, message, title):
         """Maneja la finalización de la descarga"""
         self.download_button.setEnabled(True)
-        self.status_label.setText("✅ Listo para descargar")
+        self.status_label.setText(">> SISTEMA LISTO")
         
         if success:
             self.download_signals.show_dialog.emit("Éxito", message, "info")
@@ -79,204 +81,239 @@ class YouTubeDownloaderApp(QMainWindow):
             self.download_signals.show_dialog.emit("Error", message, "error")
     
     def apply_styles(self):
-        """Aplica estilos modernos en modo oscuro a la aplicación"""
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #1e1e1e;
-                color: #e0e0e0;
-            }
-            QWidget {
-                background-color: #1e1e1e;
-                color: #e0e0e0;
-            }
-            QGroupBox {
+        """Aplica estilos Matrix en modo oscuro a la aplicación"""
+        mc = MATRIX_COLORS
+        self.setStyleSheet(f"""
+            QMainWindow {{
+                background-color: {mc['background']};
+                color: {mc['text']};
+            }}
+            QWidget {{
+                background-color: {mc['background']};
+                color: {mc['text']};
+                font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            }}
+            QGroupBox {{
                 font-weight: bold;
-                border: 2px solid #444444;
-                border-radius: 8px;
-                margin-top: 10px;
+                border: 1px solid {mc['border_dim']};
+                border-radius: 4px;
+                margin-top: 12px;
                 padding-top: 15px;
-                background-color: #2d2d2d;
-                color: #e0e0e0;
-            }
-            QGroupBox::title {
+                background-color: {mc['background_secondary']};
+                color: {mc['text']};
+            }}
+            QGroupBox::title {{
                 subcontrol-origin: margin;
                 left: 10px;
-                padding: 0 5px;
-                color: #4CAF50;
-            }
-            QLineEdit {
-                padding: 8px;
-                border: 2px solid #444444;
-                border-radius: 5px;
+                padding: 0 8px;
+                color: {mc['accent']};
+                font-weight: bold;
+            }}
+            QLineEdit {{
+                padding: 10px;
+                border: 1px solid {mc['border_dim']};
+                border-radius: 4px;
                 font-size: 11pt;
-                background-color: #2d2d2d;
-                color: #e0e0e0;
-                selection-background-color: #4CAF50;
-                selection-color: white;
-            }
-            QLineEdit:focus {
-                border: 2px solid #4CAF50;
-                background-color: #353535;
-            }
-            QPushButton {
+                background-color: {mc['background_secondary']};
+                color: {mc['text']};
+                selection-background-color: {mc['accent_dark']};
+                selection-color: {mc['text_bright']};
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {mc['accent']};
+                background-color: {mc['background_tertiary']};
+            }}
+            QLineEdit::placeholder {{
+                color: {mc['text_dim']};
+            }}
+            QPushButton {{
                 padding: 10px 20px;
-                border-radius: 5px;
+                border-radius: 4px;
                 font-weight: bold;
                 font-size: 11pt;
-                background-color: #3d3d3d;
-                color: #e0e0e0;
-                border: 1px solid #555555;
-            }
-            QPushButton:hover {
-                background-color: #4d4d4d;
-                border: 1px solid #666666;
-            }
-            QPushButton:pressed {
-                background-color: #2d2d2d;
-            }
-            QPushButton:disabled {
-                background-color: #252525;
-                color: #666666;
-                border: 1px solid #333333;
-            }
-            QComboBox {
-                padding: 8px;
-                border: 2px solid #444444;
-                border-radius: 5px;
+                background-color: {mc['background_tertiary']};
+                color: {mc['text']};
+                border: 1px solid {mc['border_dim']};
+            }}
+            QPushButton:hover {{
+                background-color: {mc['accent_dark']};
+                border: 1px solid {mc['accent']};
+                color: {mc['text_bright']};
+            }}
+            QPushButton:pressed {{
+                background-color: {mc['background_secondary']};
+            }}
+            QPushButton:disabled {{
+                background-color: {mc['background']};
+                color: {mc['border_dim']};
+                border: 1px solid {mc['background_tertiary']};
+            }}
+            QComboBox {{
+                padding: 10px;
+                border: 1px solid {mc['border_dim']};
+                border-radius: 4px;
                 font-size: 11pt;
-                background-color: #2d2d2d;
-                color: #e0e0e0;
-            }
-            QComboBox:hover {
-                border: 2px solid #555555;
-            }
-            QComboBox:focus {
-                border: 2px solid #4CAF50;
-            }
-            QComboBox::drop-down {
+                background-color: {mc['background_secondary']};
+                color: {mc['text']};
+            }}
+            QComboBox:hover {{
+                border: 1px solid {mc['accent']};
+            }}
+            QComboBox:focus {{
+                border: 1px solid {mc['accent']};
+            }}
+            QComboBox::drop-down {{
                 border: none;
-                background-color: #3d3d3d;
-            }
-            QComboBox::down-arrow {
+                background-color: {mc['background_tertiary']};
+                width: 30px;
+            }}
+            QComboBox::down-arrow {{
                 image: none;
-                border-left: 4px solid transparent;
-                border-right: 4px solid transparent;
-                border-top: 6px solid #e0e0e0;
-                margin-right: 5px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #2d2d2d;
-                color: #e0e0e0;
-                selection-background-color: #4CAF50;
-                selection-color: white;
-                border: 1px solid #444444;
-            }
-            QProgressBar {
-                border: 2px solid #444444;
-                border-radius: 5px;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 6px solid {mc['text']};
+                margin-right: 8px;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {mc['background_secondary']};
+                color: {mc['text']};
+                selection-background-color: {mc['accent_dark']};
+                selection-color: {mc['text_bright']};
+                border: 1px solid {mc['border_dim']};
+                outline: none;
+            }}
+            QProgressBar {{
+                border: 1px solid {mc['border_dim']};
+                border-radius: 4px;
                 text-align: center;
-                height: 25px;
+                height: 28px;
                 font-weight: bold;
-                background-color: #2d2d2d;
-                color: #e0e0e0;
-            }
-            QProgressBar::chunk {
-                background-color: #4CAF50;
+                background-color: {mc['background_secondary']};
+                color: {mc['text']};
+            }}
+            QProgressBar::chunk {{
+                background-color: {mc['accent']};
                 border-radius: 3px;
-            }
-            QTextEdit {
-                border: 2px solid #444444;
-                border-radius: 5px;
-                background-color: #1e1e1e;
-                color: #e0e0e0;
-                font-family: 'Courier New', monospace;
+            }}
+            QTextEdit {{
+                border: 1px solid {mc['border_dim']};
+                border-radius: 4px;
+                background-color: {mc['background']};
+                color: {mc['text']};
+                font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
                 font-size: 10pt;
-                selection-background-color: #4CAF50;
-                selection-color: white;
-            }
-            QRadioButton {
+                selection-background-color: {mc['accent_dark']};
+                selection-color: {mc['text_bright']};
+                padding: 8px;
+            }}
+            QRadioButton {{
                 font-size: 11pt;
                 padding: 5px;
-                color: #e0e0e0;
-            }
-            QRadioButton::indicator {
-                width: 18px;
-                height: 18px;
-                border-radius: 9px;
-                border: 2px solid #666666;
-                background-color: #2d2d2d;
-            }
-            QRadioButton::indicator:checked {
-                background-color: #4CAF50;
-                border: 2px solid #4CAF50;
-            }
-            QRadioButton::indicator:hover {
-                border: 2px solid #888888;
-            }
-            QLabel {
+                color: {mc['text']};
+                spacing: 8px;
+            }}
+            QRadioButton::indicator {{
+                width: 16px;
+                height: 16px;
+                border-radius: 8px;
+                border: 2px solid {mc['border_dim']};
+                background-color: {mc['background_secondary']};
+            }}
+            QRadioButton::indicator:checked {{
+                background-color: {mc['accent']};
+                border: 2px solid {mc['accent']};
+            }}
+            QRadioButton::indicator:hover {{
+                border: 2px solid {mc['accent']};
+            }}
+            QLabel {{
                 font-size: 11pt;
-                color: #e0e0e0;
-            }
-            QTabWidget::pane {
-                border: 1px solid #444444;
-                border-radius: 5px;
-                background-color: #2d2d2d;
-            }
-            QTabBar::tab {
-                background-color: #3d3d3d;
-                color: #e0e0e0;
-                padding: 10px 20px;
+                color: {mc['text']};
+            }}
+            QTabWidget::pane {{
+                border: 1px solid {mc['border_dim']};
+                border-radius: 4px;
+                background-color: {mc['background_secondary']};
+                top: -1px;
+            }}
+            QTabBar::tab {{
+                background-color: {mc['background_tertiary']};
+                color: {mc['text_dim']};
+                padding: 12px 24px;
                 margin-right: 2px;
-                border-top-left-radius: 5px;
-                border-top-right-radius: 5px;
-                border: 1px solid #444444;
-            }
-            QTabBar::tab:selected {
-                background-color: #2d2d2d;
-                border-bottom: 2px solid #4CAF50;
-                color: #4CAF50;
-            }
-            QTabBar::tab:hover {
-                background-color: #353535;
-            }
-            QScrollArea {
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                border: 1px solid {mc['border_dim']};
+                border-bottom: none;
+            }}
+            QTabBar::tab:selected {{
+                background-color: {mc['background_secondary']};
+                border-bottom: 2px solid {mc['accent']};
+                color: {mc['accent']};
+            }}
+            QTabBar::tab:hover {{
+                background-color: {mc['accent_dark']};
+                color: {mc['text_bright']};
+            }}
+            QScrollArea {{
                 border: none;
-                background-color: #1e1e1e;
-            }
-            QScrollBar:vertical {
+                background-color: {mc['background']};
+            }}
+            QScrollBar:vertical {{
                 border: none;
-                background-color: #2d2d2d;
-                width: 12px;
+                background-color: {mc['background_secondary']};
+                width: 10px;
                 margin: 0;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #555555;
-                border-radius: 6px;
-                min-height: 20px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #666666;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                border-radius: 5px;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {mc['accent_dark']};
+                border-radius: 5px;
+                min-height: 30px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {mc['accent']};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 height: 0px;
-            }
-            QScrollBar:horizontal {
+            }}
+            QScrollBar:horizontal {{
                 border: none;
-                background-color: #2d2d2d;
-                height: 12px;
+                background-color: {mc['background_secondary']};
+                height: 10px;
                 margin: 0;
-            }
-            QScrollBar::handle:horizontal {
-                background-color: #555555;
-                border-radius: 6px;
-                min-width: 20px;
-            }
-            QScrollBar::handle:horizontal:hover {
-                background-color: #666666;
-            }
-            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                border-radius: 5px;
+            }}
+            QScrollBar::handle:horizontal {{
+                background-color: {mc['accent_dark']};
+                border-radius: 5px;
+                min-width: 30px;
+            }}
+            QScrollBar::handle:horizontal:hover {{
+                background-color: {mc['accent']};
+            }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
                 width: 0px;
-            }
+            }}
+            QCheckBox {{
+                font-size: 11pt;
+                color: {mc['text']};
+                spacing: 8px;
+            }}
+            QCheckBox::indicator {{
+                width: 16px;
+                height: 16px;
+                border-radius: 3px;
+                border: 2px solid {mc['border_dim']};
+                background-color: {mc['background_secondary']};
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: {mc['accent']};
+                border: 2px solid {mc['accent']};
+            }}
+            QCheckBox::indicator:hover {{
+                border: 2px solid {mc['accent']};
+            }}
         """)
     
     def init_ui(self):
@@ -301,61 +338,118 @@ class YouTubeDownloaderApp(QMainWindow):
         main_layout.setContentsMargins(20, 20, 20, 20)
         central_widget.setLayout(main_layout)
         
-        # Título mejorado
-        title = QLabel("🎬 " + APP_NAME)
-        title_font = QFont()
-        title_font.setPointSize(22)
+        # Título mejorado estilo Matrix
+        title = QLabel(">> " + APP_NAME + " <<")
+        title_font = QFont("Consolas", 24)
         title_font.setBold(True)
         title.setFont(title_font)
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("color: #4CAF50; margin-bottom: 10px; font-weight: bold;")
+        title.setStyleSheet(f"color: {MATRIX_COLORS['accent']}; margin-bottom: 5px; font-weight: bold;")
         main_layout.addWidget(title)
-        
-        # Grupo: URL del vídeo
-        url_group = QGroupBox("🔗 URL del Vídeo")
-        url_layout = QVBoxLayout()
-        
+
+        # Subtítulo con versión
+        subtitle = QLabel("[ Multi-Platform Media Downloader v2.0 ]")
+        subtitle.setAlignment(Qt.AlignCenter)
+        subtitle.setStyleSheet(f"color: {MATRIX_COLORS['text_dim']}; font-size: 10pt; margin-bottom: 10px;")
+        main_layout.addWidget(subtitle)
+
+        # Grupo: Selección de Plataforma y URL
+        source_group = QGroupBox(">> FUENTE")
+        source_layout = QVBoxLayout()
+        source_layout.setSpacing(12)
+
+        # Selector de plataforma
+        platform_layout = QHBoxLayout()
+        platform_label = QLabel("Plataforma:")
+        platform_label.setMinimumWidth(90)
+        self.platform_combo = QComboBox()
+
+        # Añadir plataformas con iconos
+        for platform_name, platform_info in SUPPORTED_PLATFORMS.items():
+            icon = platform_info.get("icon", "")
+            self.platform_combo.addItem(f"{icon} {platform_name}", platform_name)
+
+        self.platform_combo.currentIndexChanged.connect(self.on_platform_changed)
+        platform_layout.addWidget(platform_label)
+        platform_layout.addWidget(self.platform_combo, 1)
+        source_layout.addLayout(platform_layout)
+
+        # Campo URL
+        url_layout = QHBoxLayout()
+        url_label = QLabel("URL:")
+        url_label.setMinimumWidth(90)
         self.url_input = QLineEdit()
-        self.url_input.setPlaceholderText("Pega aquí la URL del vídeo de YouTube...")
-        url_layout.addWidget(self.url_input)
-        
-        url_group.setLayout(url_layout)
-        main_layout.addWidget(url_group)
+        self.url_input.setPlaceholderText("Pega aquí la URL del contenido...")
+        self.url_input.textChanged.connect(self.on_url_changed)
+        url_layout.addWidget(url_label)
+        url_layout.addWidget(self.url_input, 1)
+        source_layout.addLayout(url_layout)
+
+        # Indicador de plataforma detectada
+        self.detected_platform_label = QLabel("")
+        self.detected_platform_label.setStyleSheet(f"color: {MATRIX_COLORS['text_dim']}; font-size: 9pt; padding-left: 95px;")
+        source_layout.addWidget(self.detected_platform_label)
+
+        source_group.setLayout(source_layout)
+        main_layout.addWidget(source_group)
         
         # Grupo: Opciones de descarga
-        options_group = QGroupBox("⚙️ Opciones de Descarga")
+        options_group = QGroupBox(">> OPCIONES")
         options_layout = QVBoxLayout()
-        
+        options_layout.setSpacing(10)
+
         # Formato
         format_layout = QHBoxLayout()
         format_label = QLabel("Formato:")
-        format_label.setMinimumWidth(80)
-        self.format_video = QRadioButton("🎬 Vídeo (MP4)")
-        self.format_audio = QRadioButton("🎵 Solo Audio (MP3)")
+        format_label.setMinimumWidth(90)
+        self.format_video = QRadioButton("Video (MP4)")
+        self.format_audio = QRadioButton("Audio (MP3)")
         # Por defecto: Audio (MP3)
         default_format = self.app_settings.get_default_format()
         if default_format == 'audio':
             self.format_audio.setChecked(True)
         else:
             self.format_video.setChecked(True)
-        
+
         format_layout.addWidget(format_label)
         format_layout.addWidget(self.format_video)
         format_layout.addWidget(self.format_audio)
         format_layout.addStretch()
         options_layout.addLayout(format_layout)
-        
+
         # Calidad (solo para vídeo)
         quality_layout = QHBoxLayout()
         quality_label = QLabel("Calidad:")
-        quality_label.setMinimumWidth(80)
+        quality_label.setMinimumWidth(90)
         self.quality_combo = QComboBox()
         self.quality_combo.addItems(VIDEO_QUALITIES)
         quality_layout.addWidget(quality_label)
-        quality_layout.addWidget(self.quality_combo)
-        quality_layout.addStretch()
+        quality_layout.addWidget(self.quality_combo, 1)
+        quality_layout.addStretch(2)
         options_layout.addLayout(quality_layout)
-        
+
+        # Opción de transcripción (solo para audio)
+        transcription_layout = QHBoxLayout()
+        transcription_label = QLabel("Extra:")
+        transcription_label.setMinimumWidth(90)
+        self.transcription_checkbox = QCheckBox("Generar transcripción (TXT)")
+        self.transcription_checkbox.setToolTip("Genera un archivo de texto con la transcripción del audio usando IA")
+        self.transcription_checkbox.setEnabled(self.format_audio.isChecked())
+        transcription_layout.addWidget(transcription_label)
+        transcription_layout.addWidget(self.transcription_checkbox)
+        transcription_layout.addStretch()
+        options_layout.addLayout(transcription_layout)
+
+        # Mensaje de capacidades de plataforma
+        self.platform_capabilities_label = QLabel("")
+        self.platform_capabilities_label.setStyleSheet(f"color: {MATRIX_COLORS['warning']}; font-size: 9pt; padding-left: 95px;")
+        options_layout.addWidget(self.platform_capabilities_label)
+
+        # Mensaje de transcripción
+        self.transcription_info_label = QLabel("")
+        self.transcription_info_label.setStyleSheet(f"color: {MATRIX_COLORS['info']}; font-size: 9pt; padding-left: 95px;")
+        options_layout.addWidget(self.transcription_info_label)
+
         options_group.setLayout(options_layout)
         main_layout.addWidget(options_group)
         
@@ -368,7 +462,7 @@ class YouTubeDownloaderApp(QMainWindow):
         local_layout.setContentsMargins(10, 10, 10, 10)
         local_layout.setSpacing(10)
         
-        local_folder_group = QGroupBox("📁 Carpeta de Destino Local")
+        local_folder_group = QGroupBox(">> CARPETA LOCAL")
         local_folder_layout = QHBoxLayout()
         local_folder_layout.setContentsMargins(10, 10, 10, 10)
         
@@ -388,8 +482,10 @@ class YouTubeDownloaderApp(QMainWindow):
         
         local_folder_group.setLayout(local_folder_layout)
         local_layout.addWidget(local_folder_group)
-        local_layout.addStretch()  # Añadir stretch para que no ocupe más espacio del necesario
         local_tab.setLayout(local_layout)
+
+        # Fijar altura máxima del local_tab basada en su contenido
+        local_tab.setMaximumHeight(100)
         
         # Pestaña: Destino SSH
         ssh_tab = QWidget()
@@ -398,7 +494,7 @@ class YouTubeDownloaderApp(QMainWindow):
         ssh_layout.setSpacing(10)
         
         # Configuraciones guardadas
-        ssh_saved_group = QGroupBox("💾 Configuraciones Guardadas")
+        ssh_saved_group = QGroupBox(">> CONFIGURACIONES GUARDADAS")
         ssh_saved_layout = QHBoxLayout()
         ssh_saved_layout.setContentsMargins(10, 10, 10, 10)
         
@@ -412,12 +508,16 @@ class YouTubeDownloaderApp(QMainWindow):
         ssh_load_button.clicked.connect(self.load_selected_ssh_config)
         ssh_saved_layout.addWidget(ssh_load_button)
         
-        ssh_save_button = QPushButton("💾 Guardar")
-        ssh_save_button.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-            }
+        ssh_save_button = QPushButton("Guardar")
+        ssh_save_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {MATRIX_COLORS['accent_dark']};
+                color: {MATRIX_COLORS['text_bright']};
+                border: 1px solid {MATRIX_COLORS['accent']};
+            }}
+            QPushButton:hover {{
+                background-color: {MATRIX_COLORS['accent']};
+            }}
         """)
         ssh_save_button.clicked.connect(self.save_current_ssh_config)
         ssh_saved_layout.addWidget(ssh_save_button)
@@ -426,7 +526,7 @@ class YouTubeDownloaderApp(QMainWindow):
         ssh_layout.addWidget(ssh_saved_group)
         
         # Configuración SSH
-        ssh_config_group = QGroupBox("🔐 Configuración SSH")
+        ssh_config_group = QGroupBox(">> CONEXION SSH")
         ssh_config_layout = QFormLayout()
         ssh_config_layout.setContentsMargins(10, 15, 10, 10)
         ssh_config_layout.setSpacing(8)
@@ -466,7 +566,7 @@ class YouTubeDownloaderApp(QMainWindow):
         ssh_layout.addWidget(ssh_config_group)
         
         # Carpeta remota
-        ssh_folder_group = QGroupBox("📁 Carpeta de Destino Remota")
+        ssh_folder_group = QGroupBox(">> CARPETA REMOTA")
         ssh_folder_layout = QVBoxLayout()
         ssh_folder_layout.setContentsMargins(10, 10, 10, 10)
         ssh_folder_layout.setSpacing(8)
@@ -483,38 +583,50 @@ class YouTubeDownloaderApp(QMainWindow):
         self.ssh_folder_input.editingFinished.connect(self.save_ssh_folder)
         folder_input_layout.addWidget(self.ssh_folder_input)
         
-        ssh_browse_button = QPushButton("🌐 Explorar...")
-        ssh_browse_button.setStyleSheet("""
-            QPushButton {
-                background-color: #9C27B0;
-                color: white;
-            }
-            QPushButton:hover {
-                background-color: #7B1FA2;
-            }
+        ssh_browse_button = QPushButton("Explorar...")
+        ssh_browse_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {MATRIX_COLORS['background_tertiary']};
+                color: {MATRIX_COLORS['info']};
+                border: 1px solid {MATRIX_COLORS['info']};
+            }}
+            QPushButton:hover {{
+                background-color: #003344;
+                color: #00EEFF;
+            }}
         """)
         ssh_browse_button.clicked.connect(self.browse_ssh_folder)
         folder_input_layout.addWidget(ssh_browse_button)
         
         ssh_folder_layout.addLayout(folder_input_layout)
         
-        ssh_test_button = QPushButton("🔌 Probar Conexión")
-        ssh_test_button.setStyleSheet("""
-            QPushButton {
-                background-color: #2196F3;
-                color: white;
-            }
+        ssh_test_button = QPushButton("Probar Conexion")
+        ssh_test_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {MATRIX_COLORS['background_tertiary']};
+                color: {MATRIX_COLORS['info']};
+                border: 1px solid {MATRIX_COLORS['info']};
+            }}
+            QPushButton:hover {{
+                background-color: #003344;
+                color: #00EEFF;
+            }}
         """)
         ssh_test_button.clicked.connect(self.test_ssh_connection)
         ssh_folder_layout.addWidget(ssh_test_button)
         
         # Botón para limpiar campos
-        ssh_clear_button = QPushButton("🗑️ Limpiar Campos")
-        ssh_clear_button.setStyleSheet("""
-            QPushButton {
-                background-color: #ff9800;
-                color: white;
-            }
+        ssh_clear_button = QPushButton("Limpiar Campos")
+        ssh_clear_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {MATRIX_COLORS['background_tertiary']};
+                color: {MATRIX_COLORS['warning']};
+                border: 1px solid {MATRIX_COLORS['warning']};
+            }}
+            QPushButton:hover {{
+                background-color: #332200;
+                color: #FFCC00;
+            }}
         """)
         ssh_clear_button.clicked.connect(self.clear_ssh_fields)
         ssh_folder_layout.addWidget(ssh_clear_button)
@@ -525,13 +637,25 @@ class YouTubeDownloaderApp(QMainWindow):
         ssh_tab.setLayout(ssh_layout)
         
         # Añadir pestañas
-        destination_tabs.addTab(local_tab, "💻 Local")
-        destination_tabs.addTab(ssh_tab, "🌐 Servidor SSH")
-        
+        destination_tabs.addTab(local_tab, "LOCAL")
+        destination_tabs.addTab(ssh_tab, "SSH")
+
+        # Configurar para que ajuste altura según contenido
+        destination_tabs.setSizePolicy(
+            destination_tabs.sizePolicy().horizontalPolicy(),
+            destination_tabs.sizePolicy().verticalPolicy()
+        )
+
         # Conectar cambio de pestaña
         destination_tabs.currentChanged.connect(self.on_tab_changed)
-        
+
         self.destination_tabs = destination_tabs
+        self.local_tab = local_tab
+        self.ssh_tab = ssh_tab
+
+        # Altura inicial para pestaña Local
+        destination_tabs.setFixedHeight(120)
+
         main_layout.addWidget(destination_tabs)
         
         # Barra de progreso
@@ -543,13 +667,13 @@ class YouTubeDownloaderApp(QMainWindow):
         main_layout.addWidget(self.progress_bar)
         
         # Mensaje de estado
-        self.status_label = QLabel("✅ Listo para descargar")
+        self.status_label = QLabel(">> SISTEMA LISTO")
         self.status_label.setAlignment(Qt.AlignCenter)
-        self.status_label.setStyleSheet("font-size: 12pt; font-weight: bold; color: #4CAF50; padding: 5px;")
+        self.status_label.setStyleSheet(f"font-size: 12pt; font-weight: bold; color: {MATRIX_COLORS['accent']}; padding: 8px; font-family: 'Consolas', monospace;")
         main_layout.addWidget(self.status_label)
         
         # Área de mensajes
-        messages_group = QGroupBox("📋 Mensajes")
+        messages_group = QGroupBox(">> LOG")
         messages_layout = QVBoxLayout()
         
         self.messages_text = QTextEdit()
@@ -563,33 +687,40 @@ class YouTubeDownloaderApp(QMainWindow):
         # Botones de acción
         buttons_layout = QHBoxLayout()
         
-        self.download_button = QPushButton("⬇️ Descargar")
-        self.download_button.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
+        self.download_button = QPushButton(">> DESCARGAR")
+        self.download_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {MATRIX_COLORS['accent_dark']};
+                color: {MATRIX_COLORS['text_bright']};
                 font-weight: bold;
-                padding: 12px 30px;
-                font-size: 12pt;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-            QPushButton:disabled {
-                background-color: #cccccc;
-            }
+                padding: 14px 40px;
+                font-size: 13pt;
+                border: 2px solid {MATRIX_COLORS['accent']};
+                font-family: 'Consolas', monospace;
+            }}
+            QPushButton:hover {{
+                background-color: {MATRIX_COLORS['accent']};
+                color: {MATRIX_COLORS['background']};
+            }}
+            QPushButton:disabled {{
+                background-color: {MATRIX_COLORS['background_tertiary']};
+                color: {MATRIX_COLORS['border_dim']};
+                border: 2px solid {MATRIX_COLORS['border_dim']};
+            }}
         """)
         self.download_button.clicked.connect(self.start_download)
         
-        self.clear_button = QPushButton("🗑️ Limpiar")
-        self.clear_button.setStyleSheet("""
-            QPushButton {
-                background-color: #f44336;
-                color: white;
-            }
-            QPushButton:hover {
-                background-color: #da190b;
-            }
+        self.clear_button = QPushButton("LIMPIAR LOG")
+        self.clear_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {MATRIX_COLORS['background_tertiary']};
+                color: {MATRIX_COLORS['error']};
+                border: 1px solid {MATRIX_COLORS['error']};
+            }}
+            QPushButton:hover {{
+                background-color: #330011;
+                color: #FF3366;
+            }}
         """)
         self.clear_button.clicked.connect(self.clear_messages)
         
@@ -607,16 +738,65 @@ class YouTubeDownloaderApp(QMainWindow):
         self.format_audio.toggled.connect(self.on_format_changed)
     
     def on_format_changed(self):
-        """Habilita o deshabilita el selector de calidad según el formato"""
-        self.quality_combo.setEnabled(self.format_video.isChecked())
+        """Habilita o deshabilita el selector de calidad y transcripción según el formato"""
+        is_video = self.format_video.isChecked()
+        is_audio = self.format_audio.isChecked()
+
+        self.quality_combo.setEnabled(is_video)
+        self.transcription_checkbox.setEnabled(is_audio)
+
+        if is_video:
+            self.transcription_checkbox.setChecked(False)
+            self.transcription_info_label.setText("")
+        else:
+            self.transcription_info_label.setText("La transcripción usa Whisper AI (puede tardar)")
     
     def on_tab_changed(self, index):
         """Se ejecuta cuando se cambia de pestaña"""
         # Actualizar texto del botón de descargar según la pestaña activa
         if index == 1:  # Pestaña SSH
-            self.download_button.setText("⬇️ Descargar y Exportar a Servidor")
+            self.download_button.setText(">> DESCARGAR + SSH")
+            self.destination_tabs.setFixedHeight(420)
         else:  # Pestaña Local (índice 0)
-            self.download_button.setText("⬇️ Descargar")
+            self.download_button.setText(">> DESCARGAR")
+            self.destination_tabs.setFixedHeight(120)
+
+    def on_platform_changed(self, index):
+        """Se ejecuta cuando se cambia la plataforma seleccionada"""
+        platform = self.platform_combo.currentData()
+        if platform and platform in SUPPORTED_PLATFORMS:
+            capabilities = SUPPORTED_PLATFORMS[platform]
+
+            # Actualizar opciones de formato según capacidades
+            if not capabilities["supports_video"]:
+                self.format_audio.setChecked(True)
+                self.format_video.setEnabled(False)
+                self.quality_combo.setEnabled(False)
+                self.platform_capabilities_label.setText("Esta plataforma solo soporta audio")
+            elif not capabilities["supports_audio"]:
+                self.format_video.setChecked(True)
+                self.format_audio.setEnabled(False)
+                self.quality_combo.setEnabled(True)
+                self.platform_capabilities_label.setText("Esta plataforma solo soporta video")
+            else:
+                self.format_video.setEnabled(True)
+                self.format_audio.setEnabled(True)
+                self.quality_combo.setEnabled(self.format_video.isChecked())
+                self.platform_capabilities_label.setText("")
+
+    def on_url_changed(self, text):
+        """Se ejecuta cuando cambia la URL para detectar plataforma automáticamente"""
+        if text.strip():
+            detected = InputValidator.detect_platform(text)
+            if detected:
+                self.detected_platform_label.setText(f"Detectado: {detected}")
+                # Auto-seleccionar la plataforma detectada
+                for i in range(self.platform_combo.count()):
+                    if self.platform_combo.itemData(i) == detected:
+                        self.platform_combo.setCurrentIndex(i)
+                        break
+        else:
+            self.detected_platform_label.setText("")
     
     def save_local_folder(self):
         """Guarda la carpeta local actual como predeterminada"""
@@ -856,19 +1036,19 @@ class YouTubeDownloaderApp(QMainWindow):
     def add_message(self, message, message_type="info"):
         """
         Añade un mensaje al área de mensajes
-        
+
         Args:
             message: Mensaje a mostrar
             message_type: Tipo de mensaje (info, success, error, warning)
         """
         colors = {
-            "info": "#64B5F6",      # Azul más claro para modo oscuro
-            "success": "#81C784",   # Verde más claro para modo oscuro
-            "error": "#E57373",     # Rojo más claro para modo oscuro
-            "warning": "#FFB74D"    # Naranja más claro para modo oscuro
+            "info": MATRIX_COLORS["info"],
+            "success": MATRIX_COLORS["success"],
+            "error": MATRIX_COLORS["error"],
+            "warning": MATRIX_COLORS["warning"]
         }
-        color = colors.get(message_type, "#e0e0e0")
-        self.messages_text.append(f'<span style="color: {color}; font-weight: bold;">[{message_type.upper()}]</span> <span style="color: #e0e0e0;">{message}</span>')
+        color = colors.get(message_type, MATRIX_COLORS["text"])
+        self.messages_text.append(f'<span style="color: {color}; font-weight: bold;">[{message_type.upper()}]</span> <span style="color: {MATRIX_COLORS["text"]};">{message}</span>')
     
     def clear_messages(self):
         """Limpia el área de mensajes"""
@@ -877,18 +1057,19 @@ class YouTubeDownloaderApp(QMainWindow):
     def validate_inputs(self):
         """
         Valida los campos de entrada
-        
+
         Returns:
             bool: True si los campos son válidos
         """
         url = self.url_input.text().strip()
-        
+        platform = self.platform_combo.currentData()
+
         if not url:
-            QMessageBox.warning(self, "Error", "Por favor, introduce una URL de YouTube")
+            QMessageBox.warning(self, "Error", "Por favor, introduce una URL")
             return False
-        
-        # Validar URL
-        is_valid, error_msg = InputValidator.validate_url(url)
+
+        # Validar URL según la plataforma seleccionada
+        is_valid, error_msg = InputValidator.validate_url(url, platform)
         if not is_valid:
             QMessageBox.warning(self, "Error de Validación", error_msg)
             return False
@@ -909,10 +1090,10 @@ class YouTubeDownloaderApp(QMainWindow):
         
         return True
     
-    def download_video(self, url, output_folder, is_audio, quality, use_ssh=False, ssh_config=None):
+    def download_video(self, url, output_folder, is_audio, quality, use_ssh=False, ssh_config=None, transcribe=False):
         """
         Descarga el vídeo en un hilo separado
-        
+
         Args:
             url: URL del vídeo
             output_folder: Carpeta de destino
@@ -920,6 +1101,7 @@ class YouTubeDownloaderApp(QMainWindow):
             quality: Calidad del vídeo
             use_ssh: True si se debe subir a servidor SSH
             ssh_config: Diccionario con configuración SSH
+            transcribe: True si se debe transcribir el audio
         """
         temp_file = None
         try:
@@ -1125,12 +1307,49 @@ class YouTubeDownloaderApp(QMainWindow):
                 success, message, title = YouTubeDownloader.download(
                     url, output_folder, is_audio, quality, self.progress_hook
                 )
-                
+
                 if success:
                     # Guardar carpeta local usada después de descarga exitosa
                     if output_folder:
                         self.app_settings.set_last_local_folder(output_folder)
-                    
+
+                    transcription_result = ""
+
+                    # Transcribir si está habilitado y es audio
+                    if is_audio and transcribe:
+                        self.progress_hook.progress.emit(95, "Transcribiendo audio...")
+                        self.download_signals.message.emit("Iniciando transcripción con Whisper AI...", "info")
+
+                        # Buscar el archivo de audio descargado
+                        import glob
+                        import time
+                        time.sleep(1)  # Esperar a que se complete la escritura
+
+                        # Buscar archivos MP3 recientes en la carpeta
+                        mp3_files = glob.glob(os.path.join(output_folder, "*.mp3"))
+                        if mp3_files:
+                            audio_file = max(mp3_files, key=os.path.getmtime)
+
+                            # Generar nombre para el archivo de transcripción
+                            txt_filename = os.path.splitext(audio_file)[0] + "_transcripcion.txt"
+
+                            # Transcribir
+                            trans_success, trans_msg, trans_text = AudioTranscriber.transcribe(
+                                audio_file,
+                                txt_filename,
+                                model_name="base",
+                                language="es"
+                            )
+
+                            if trans_success:
+                                self.download_signals.message.emit(f"Transcripción guardada: {os.path.basename(txt_filename)}", "success")
+                                transcription_result = f"\nTranscripción: {txt_filename}"
+                            else:
+                                self.download_signals.message.emit(f"Error en transcripción: {trans_msg}", "warning")
+                                transcription_result = f"\nTranscripción fallida: {trans_msg}"
+                        else:
+                            self.download_signals.message.emit("No se encontró archivo de audio para transcribir", "warning")
+
                     self.progress_hook.progress.emit(100, "¡Descarga completada!")
                     self.download_signals.message.emit(
                         f"¡Descarga completada! Archivo guardado en: {output_folder}",
@@ -1138,7 +1357,7 @@ class YouTubeDownloaderApp(QMainWindow):
                     )
                     self.download_signals.download_finished.emit(
                         True,
-                        f"¡Descarga completada!\n\n{title}\n\nGuardado en: {output_folder}",
+                        f"¡Descarga completada!\n\n{title}\n\nGuardado en: {output_folder}{transcription_result}",
                         title
                     )
                 else:
@@ -1164,7 +1383,7 @@ class YouTubeDownloaderApp(QMainWindow):
         
         # Deshabilitar botón durante la descarga
         self.download_button.setEnabled(False)
-        self.status_label.setText("⏳ Descargando...")
+        self.status_label.setText(">> DESCARGANDO...")
         self.progress_bar.setValue(0)
         
         # Crear hook de progreso
@@ -1175,14 +1394,15 @@ class YouTubeDownloaderApp(QMainWindow):
         url = self.url_input.text().strip()
         is_audio = self.format_audio.isChecked()
         quality = self.quality_combo.currentText() if not is_audio else None
-        
+        transcribe = self.transcription_checkbox.isChecked() and is_audio
+
         # Guardar formato por defecto
         format_type = 'audio' if is_audio else 'video'
         self.app_settings.set_default_format(format_type)
-        
+
         # Determinar destino
         use_ssh = self.destination_tabs.currentIndex() == 1  # SSH tab
-        
+
         if use_ssh:
             output_folder = self.ssh_folder_input.text().strip()
             # Guardar última carpeta remota usada
@@ -1202,11 +1422,11 @@ class YouTubeDownloaderApp(QMainWindow):
             if output_folder:
                 self.app_settings.set_last_local_folder(output_folder)
             ssh_config = None
-        
+
         # Iniciar descarga en hilo separado
         self.download_thread = Thread(
             target=self.download_video,
-            args=(url, output_folder, is_audio, quality, use_ssh, ssh_config)
+            args=(url, output_folder, is_audio, quality, use_ssh, ssh_config, transcribe)
         )
         self.download_thread.daemon = True
         self.download_thread.start()
@@ -1214,10 +1434,10 @@ class YouTubeDownloaderApp(QMainWindow):
     def update_progress(self, percent, message):
         """
         Actualiza la barra de progreso y el mensaje de estado
-        
+
         Args:
             percent: Porcentaje de descarga (0-100)
             message: Mensaje de estado
         """
         self.progress_bar.setValue(percent)
-        self.status_label.setText(f"⏳ {message}")
+        self.status_label.setText(f">> {message}")

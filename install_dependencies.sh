@@ -1,44 +1,155 @@
 #!/bin/bash
-# Script para instalar todas las dependencias del sistema necesarias
+# ============================================================================
+#  MEDIA DOWNLOADER - INSTALADOR DE DEPENDENCIAS
+#  Version 2.0 - Matrix Edition
+# ============================================================================
 
-# Colores para mensajes
+# Colores Matrix
 GREEN='\033[0;32m'
+BRIGHT_GREEN='\033[1;32m'
+DARK_GREEN='\033[2;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+CYAN='\033[0;36m'
+NC='\033[0m'
 
-echo -e "${BLUE}📦 Instalador de Dependencias del Sistema${NC}"
-echo "=============================================="
+# Funciones de impresión estilo Matrix
+print_matrix_header() {
+    echo -e "${BRIGHT_GREEN}"
+    echo "╔══════════════════════════════════════════════════════════════════════════════╗"
+    echo "║                                                                              ║"
+    echo "║   ███╗   ███╗███████╗██████╗ ██╗ █████╗     ██████╗ ██╗                     ║"
+    echo "║   ████╗ ████║██╔════╝██╔══██╗██║██╔══██╗    ██╔══██╗██║                     ║"
+    echo "║   ██╔████╔██║█████╗  ██║  ██║██║███████║    ██║  ██║██║                     ║"
+    echo "║   ██║╚██╔╝██║██╔══╝  ██║  ██║██║██╔══██║    ██║  ██║██║                     ║"
+    echo "║   ██║ ╚═╝ ██║███████╗██████╔╝██║██║  ██║    ██████╔╝███████╗                ║"
+    echo "║   ╚═╝     ╚═╝╚══════╝╚═════╝ ╚═╝╚═╝  ╚═╝    ╚═════╝ ╚══════╝                ║"
+    echo "║                                                                              ║"
+    echo "║                    >> INSTALADOR DE DEPENDENCIAS <<                          ║"
+    echo "║                          [ VERSION 2.0 ]                                     ║"
+    echo "║                                                                              ║"
+    echo "╚══════════════════════════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
+}
+
+print_step() {
+    echo -e "${BRIGHT_GREEN}[>>]${NC} ${GREEN}$1${NC}"
+}
+
+print_success() {
+    echo -e "${BRIGHT_GREEN}[OK]${NC} ${GREEN}$1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}[!!]${NC} ${RED}$1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[??]${NC} ${YELLOW}$1${NC}"
+}
+
+print_info() {
+    echo -e "${CYAN}[--]${NC} ${CYAN}$1${NC}"
+}
+
+print_separator() {
+    echo -e "${DARK_GREEN}────────────────────────────────────────────────────────────────────────────────${NC}"
+}
+
+# Mostrar header
+clear
+print_matrix_header
+
+echo ""
+print_separator
 echo ""
 
 # Verificar que se ejecute como root o con sudo
-if [ "$EUID" -ne 0 ]; then 
-    echo -e "${YELLOW}⚠️  Este script necesita permisos de administrador${NC}"
-    echo "   Ejecutando con sudo..."
+if [ "$EUID" -ne 0 ]; then
+    print_warning "Este script necesita permisos de administrador"
+    print_info "Ejecutando con sudo..."
     echo ""
     exec sudo bash "$0" "$@"
     exit $?
 fi
 
-echo -e "${GREEN}✓${NC} Permisos de administrador confirmados"
+print_success "Permisos de administrador confirmados"
+echo ""
+print_separator
 echo ""
 
-# Actualizar lista de paquetes
-echo -e "${BLUE}🔄 Actualizando lista de paquetes...${NC}"
-apt update
-
-echo ""
-echo -e "${BLUE}📥 Instalando dependencias del sistema...${NC}"
+# ============================================================================
+# PASO 1: Actualizar sistema
+# ============================================================================
+print_step "PASO 1/5: Actualizando lista de paquetes..."
 echo ""
 
-# Instalar FFmpeg
-echo -e "${YELLOW}→${NC} Instalando FFmpeg..."
-apt install -y ffmpeg
+apt update -qq
+if [ $? -eq 0 ]; then
+    print_success "Lista de paquetes actualizada"
+else
+    print_error "Error al actualizar paquetes"
+    exit 1
+fi
 
-# Instalar dependencias de PySide6/Qt
-echo -e "${YELLOW}→${NC} Instalando dependencias de PySide6/Qt..."
-apt install -y \
+echo ""
+print_separator
+echo ""
+
+# ============================================================================
+# PASO 2: Instalar Python y herramientas básicas
+# ============================================================================
+print_step "PASO 2/5: Instalando Python y herramientas básicas..."
+echo ""
+
+apt install -y -qq \
+    python3 \
+    python3-pip \
+    python3-venv \
+    python3-dev \
+    git \
+    curl \
+    wget
+
+if [ $? -eq 0 ]; then
+    print_success "Python y herramientas básicas instaladas"
+else
+    print_error "Error al instalar Python"
+    exit 1
+fi
+
+echo ""
+print_separator
+echo ""
+
+# ============================================================================
+# PASO 3: Instalar FFmpeg
+# ============================================================================
+print_step "PASO 3/5: Instalando FFmpeg (procesamiento de audio/video)..."
+echo ""
+
+apt install -y -qq ffmpeg
+
+if [ $? -eq 0 ]; then
+    print_success "FFmpeg instalado correctamente"
+    FFMPEG_VERSION=$(ffmpeg -version 2>&1 | head -n1)
+    print_info "$FFMPEG_VERSION"
+else
+    print_error "Error al instalar FFmpeg"
+    exit 1
+fi
+
+echo ""
+print_separator
+echo ""
+
+# ============================================================================
+# PASO 4: Instalar dependencias de Qt/PySide6
+# ============================================================================
+print_step "PASO 4/5: Instalando dependencias de Qt/PySide6..."
+echo ""
+
+apt install -y -qq \
     libxcb-cursor0 \
     libxcb-xinerama0 \
     libxcb-xinput0 \
@@ -68,15 +179,93 @@ apt install -y \
     libxss1 \
     libxcursor1 \
     libxcomposite1 \
-    libasound2t64
+    libegl1 \
+    libgl1 \
+    libglib2.0-0
+
+# Intentar instalar libasound (puede variar el nombre según la versión)
+apt install -y -qq libasound2t64 2>/dev/null || apt install -y -qq libasound2 2>/dev/null
+
+if [ $? -eq 0 ]; then
+    print_success "Dependencias de Qt instaladas correctamente"
+else
+    print_warning "Algunas dependencias de Qt podrían no haberse instalado"
+fi
 
 echo ""
-echo -e "${GREEN}✅ Todas las dependencias del sistema han sido instaladas${NC}"
+print_separator
 echo ""
-echo -e "${BLUE}📝 Próximos pasos:${NC}"
-echo "   1. Instala las dependencias de Python:"
-echo "      pip install -r requirements.txt"
+
+# ============================================================================
+# PASO 5: Instalar dependencias de Python
+# ============================================================================
+print_step "PASO 5/5: Instalando dependencias de Python..."
 echo ""
-echo "   2. Ejecuta la aplicación:"
-echo "      ./run.sh"
+
+# Obtener el directorio del script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REQUIREMENTS_FILE="$SCRIPT_DIR/requirements.txt"
+
+if [ -f "$REQUIREMENTS_FILE" ]; then
+    # Crear entorno virtual si no existe
+    VENV_DIR="$SCRIPT_DIR/venv"
+
+    if [ ! -d "$VENV_DIR" ]; then
+        print_info "Creando entorno virtual..."
+        python3 -m venv "$VENV_DIR"
+    fi
+
+    # Activar entorno virtual e instalar dependencias
+    print_info "Instalando dependencias de Python en entorno virtual..."
+    source "$VENV_DIR/bin/activate"
+
+    pip install --upgrade pip -q
+    pip install -r "$REQUIREMENTS_FILE" -q
+
+    if [ $? -eq 0 ]; then
+        print_success "Dependencias de Python instaladas correctamente"
+    else
+        print_warning "Algunas dependencias de Python podrían no haberse instalado"
+        print_info "Intenta instalarlas manualmente con: pip install -r requirements.txt"
+    fi
+
+    deactivate
+else
+    print_warning "No se encontró requirements.txt"
+    print_info "Instala las dependencias manualmente con: pip install -r requirements.txt"
+fi
+
+echo ""
+print_separator
+echo ""
+
+# ============================================================================
+# RESUMEN FINAL
+# ============================================================================
+echo -e "${BRIGHT_GREEN}"
+echo "╔══════════════════════════════════════════════════════════════════════════════╗"
+echo "║                                                                              ║"
+echo "║                      >> INSTALACION COMPLETADA <<                            ║"
+echo "║                                                                              ║"
+echo "╠══════════════════════════════════════════════════════════════════════════════╣"
+echo "║                                                                              ║"
+echo "║   [OK] Dependencias del sistema instaladas                                   ║"
+echo "║   [OK] FFmpeg instalado                                                      ║"
+echo "║   [OK] Dependencias de Qt/PySide6 instaladas                                ║"
+echo "║   [OK] Entorno virtual creado                                               ║"
+echo "║   [OK] Dependencias de Python instaladas                                    ║"
+echo "║                                                                              ║"
+echo "╠══════════════════════════════════════════════════════════════════════════════╣"
+echo "║                                                                              ║"
+echo "║   >> PARA EJECUTAR LA APLICACION:                                           ║"
+echo "║                                                                              ║"
+echo "║      source venv/bin/activate                                               ║"
+echo "║      python3 main.py                                                        ║"
+echo "║                                                                              ║"
+echo "║   >> O USA EL SCRIPT:                                                       ║"
+echo "║                                                                              ║"
+echo "║      ./run.sh                                                               ║"
+echo "║                                                                              ║"
+echo "╚══════════════════════════════════════════════════════════════════════════════╝"
+echo -e "${NC}"
 echo ""
