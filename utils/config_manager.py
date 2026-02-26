@@ -5,9 +5,12 @@ Gestor de configuraciones SSH guardadas
 """
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import List, Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class SSHConfigManager:
@@ -43,9 +46,10 @@ class SSHConfigManager:
             with open(self.config_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 return data.get('servers', [])
-        except Exception:
+        except (json.JSONDecodeError, OSError) as e:
+            logger.error("Failed to load SSH configs: %s", e)
             return []
-    
+
     def save_config(self, name: str, host: str, port: int, username: str,
                    password: str = "", key_file: str = "", 
                    remote_folder: str = "", description: str = "") -> bool:
@@ -92,8 +96,8 @@ class SSHConfigManager:
             
             return True
         
-        except Exception as e:
-            print(f"Error al guardar configuración: {e}")
+        except (json.JSONDecodeError, OSError) as e:
+            logger.error("Error al guardar configuración: %s", e)
             return False
     
     def delete_config(self, name: str) -> bool:
@@ -116,7 +120,8 @@ class SSHConfigManager:
             
             return True
         
-        except Exception:
+        except (json.JSONDecodeError, OSError) as e:
+            logger.error("Error al eliminar configuración: %s", e)
             return False
     
     def get_config(self, name: str) -> Optional[Dict]:

@@ -4,9 +4,14 @@
 Lógica de descarga de vídeos de YouTube
 """
 
+import logging
 import os
+
 import yt_dlp
+
 from config import AUDIO_QUALITY, AUDIO_CODEC
+
+logger = logging.getLogger(__name__)
 
 
 class YouTubeDownloader:
@@ -159,5 +164,6 @@ class YouTubeDownloader:
                 return True, "Descarga completada", video_title
         
         except Exception as e:
+            logger.exception("Download failed for URL: %s", url)
             error_msg = str(e)
             return False, error_msg, None

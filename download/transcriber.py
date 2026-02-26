@@ -4,10 +4,13 @@
 Módulo de transcripción de audio usando Whisper
 """
 
+import logging
 import os
 import subprocess
 import tempfile
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 class AudioTranscriber:
@@ -86,6 +89,7 @@ Generado con Media Downloader - Whisper AI
         except ImportError:
             return False, "Whisper no está instalado. Ejecuta: pip install openai-whisper", None
         except Exception as e:
+            logger.exception("Transcription failed for: %s", audio_path)
             return False, f"Error en la transcripción: {str(e)}", None
 
     @staticmethod
@@ -159,6 +163,7 @@ Generado con Media Downloader - Whisper AI
         except ImportError:
             return False, "Whisper no está instalado. Ejecuta: pip install openai-whisper", None
         except Exception as e:
+            logger.exception("Segmented transcription failed for: %s", audio_path)
             return False, f"Error en la transcripción: {str(e)}", None
 
     @staticmethod

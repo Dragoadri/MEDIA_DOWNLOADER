@@ -1,29 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Punto de entrada principal de la aplicación
-Descargador de YouTube - Aplicación de escritorio
-"""
+"""Main entry point for Media Downloader."""
 
 import sys
+
 from PySide6.QtWidgets import QApplication
 
-from ui.main_window import YouTubeDownloaderApp
 from config import APP_NAME
+from ui.main_window import YouTubeDownloaderApp
+from utils.logger import setup_logging
 
 
 def main():
-    """Función principal"""
+    setup_logging()
     app = QApplication(sys.argv)
-    
-    # Establecer estilo de la aplicación
     app.setStyle('Fusion')
     app.setApplicationName(APP_NAME)
-    
-    # Crear y mostrar ventana principal
+
     window = YouTubeDownloaderApp()
     window.show()
-    
+
     sys.exit(app.exec())
 
 

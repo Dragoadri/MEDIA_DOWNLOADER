@@ -5,8 +5,11 @@ Gestor de configuraciones de la aplicación
 """
 
 import json
+import logging
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 class AppSettings:
@@ -41,9 +44,10 @@ class AppSettings:
         try:
             with open(self.settings_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
-        except Exception:
+        except (json.JSONDecodeError, OSError) as e:
+            logger.error("Failed to load app settings: %s", e)
             return {}
-    
+
     def save_settings(self, settings: dict) -> bool:
         """
         Guarda las configuraciones
@@ -58,7 +62,8 @@ class AppSettings:
             with open(self.settings_file, 'w', encoding='utf-8') as f:
                 json.dump(settings, f, indent=2, ensure_ascii=False)
             return True
-        except Exception:
+        except (json.JSONDecodeError, OSError) as e:
+            logger.error("Failed to save app settings: %s", e)
             return False
     
     def get_last_local_folder(self) -> Optional[str]:
