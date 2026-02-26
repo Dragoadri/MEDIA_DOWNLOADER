@@ -15,7 +15,7 @@ from threading import Thread
 
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QTabWidget, QScrollArea, QMessageBox
+    QLabel, QPushButton, QTabWidget, QScrollArea, QMessageBox, QSizePolicy
 )
 from PySide6.QtCore import Qt, QObject, Signal
 from PySide6.QtGui import QFont, QShortcut, QKeySequence
@@ -209,11 +209,25 @@ class YouTubeDownloaderApp(QMainWindow):
         self.source.set_url_valid(is_valid)
 
     def _on_tab_changed(self, index: int):
-        """Update download button text when tab changes"""
+        """Update download button text and adjust tab height when tab changes"""
         if index == 1:
             self.download_button.setText(">> DESCARGAR + SSH")
         else:
             self.download_button.setText(">> DESCARGAR")
+
+        # Adjust QTabWidget height to fit the current tab content
+        for i in range(self.destination_tabs.count()):
+            widget = self.destination_tabs.widget(i)
+            if i == index:
+                widget.setSizePolicy(widget.sizePolicy().horizontalPolicy(),
+                                     QSizePolicy.Preferred)
+            else:
+                widget.setSizePolicy(widget.sizePolicy().horizontalPolicy(),
+                                     QSizePolicy.Ignored)
+        self.destination_tabs.setFixedHeight(
+            self.destination_tabs.currentWidget().sizeHint().height()
+            + self.destination_tabs.tabBar().sizeHint().height() + 10
+        )
 
     # ------------------------------------------------------------------
     # Download lifecycle
