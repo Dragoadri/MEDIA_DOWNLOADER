@@ -12,6 +12,7 @@ yt-dlp>=2023.7.6                # Motor de descarga multi-plataforma
 
 # --- CONEXION REMOTA SSH ---
 paramiko>=3.0.0                 # Cliente SSH/SFTP
+keyring>=24.0.0                 # Almacenamiento seguro de credenciales
 
 # --- TRANSCRIPCION DE AUDIO ---
 openai-whisper>=20231117        # IA para transcripcion de audio a texto

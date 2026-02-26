@@ -4,10 +4,13 @@
 Cliente SSH para transferencia de archivos a servidor remoto
 """
 
+import logging
 import os
 import paramiko
 from pathlib import Path
 from typing import Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 
 class SSHClient:
@@ -45,7 +48,11 @@ class SSHClient:
             }
             
             self.client = paramiko.SSHClient()
-            self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            self.client.set_missing_host_key_policy(paramiko.WarningPolicy())
+            # Load known hosts if available
+            known_hosts = Path.home() / ".ssh" / "known_hosts"
+            if known_hosts.exists():
+                self.client.load_host_keys(str(known_hosts))
             
             # Intentar con clave privada primero
             if key_file and os.path.exists(key_file):
@@ -106,9 +113,12 @@ class SSHClient:
                 self.sftp.close()
             if self.client:
                 self.client.close()
-        except:
-            pass
-    
+        except (paramiko.SSHException, OSError) as e:
+            logger.warning("Error closing SSH connection: %s", e)
+        finally:
+            self.sftp = None
+            self.client = None
+
     def test_connection(self) -> Tuple[bool, str]:
         """
         Prueba la conexión SSH
@@ -212,8 +222,7 @@ class SSHClient:
                 
                 # Subir archivo directamente
                 # Paramiko SFTP es confiable para archivos grandes
-                # Nota: Paramiko no soporta callback en put(), así que subimos directamente
-                self.sftp.put(local_path, remote_path)
+                self.sftp.put(local_path, remote_path, callback=progress_callback)
                 
                 # Verificar que el archivo se subió correctamente
                 try:
@@ -222,66 +231,13 @@ class SSHClient:
                         return True, f"Archivo subido correctamente ({file_size / 1024 / 1024:.2f} MB)"
                     else:
                         return False, f"Error: El archivo remoto tiene un tamaño diferente ({remote_stat.st_size} vs {file_size} bytes)"
-                except:
+                except (IOError, OSError):
                     # Si no se puede verificar, asumir que se subió correctamente
                     return True, "Archivo subido correctamente"
             
             except Exception as sftp_error:
-                error_msg = str(sftp_error)
-                # Si SFTP falla, intentar con scp como fallback
-                try:
-                    import subprocess
-                    
-                    port = self.ssh_config.get('port', 22) if self.ssh_config else 22
-                    username = self.ssh_config.get('username', '') if self.ssh_config else ''
-                    host = self.ssh_config.get('host', '') if self.ssh_config else ''
-                    
-                    if self.ssh_config and self.ssh_config.get('password'):
-                        # Usar sshpass si está disponible
-                        cmd = [
-                            'sshpass', '-p', self.ssh_config['password'],
-                            'scp', '-P', str(port),
-                            '-o', 'StrictHostKeyChecking=no',
-                            '-o', 'UserKnownHostsFile=/dev/null',
-                            local_path,
-                            f'{username}@{host}:{remote_path}'
-                        ]
-                    elif self.ssh_config and self.ssh_config.get('key_file'):
-                        cmd = [
-                            'scp', '-i', self.ssh_config['key_file'],
-                            '-P', str(port),
-                            '-o', 'StrictHostKeyChecking=no',
-                            '-o', 'UserKnownHostsFile=/dev/null',
-                            local_path,
-                            f'{username}@{host}:{remote_path}'
-                        ]
-                    else:
-                        cmd = [
-                            'scp', '-P', str(port),
-                            '-o', 'StrictHostKeyChecking=no',
-                            '-o', 'UserKnownHostsFile=/dev/null',
-                            local_path,
-                            f'{username}@{host}:{remote_path}'
-                        ]
-                    
-                    result = subprocess.run(
-                        cmd,
-                        capture_output=True,
-                        text=True,
-                        timeout=600
-                    )
-                    
-                    if result.returncode == 0:
-                        return True, f"Archivo subido correctamente usando scp ({file_size / 1024 / 1024:.2f} MB)"
-                    else:
-                        return False, f"Error en scp: {result.stderr.strip() or result.stdout.strip() or 'Error desconocido'}"
-                
-                except FileNotFoundError:
-                    return False, f"Error SFTP: {error_msg}. scp/sshpass no está disponible."
-                except subprocess.TimeoutExpired:
-                    return False, "Timeout: La subida tardó demasiado (>10 minutos)"
-                except Exception as scp_error:
-                    return False, f"Error SFTP: {error_msg}. Error scp: {str(scp_error)}"
+                logger.error("SFTP upload failed: %s", sftp_error)
+                return False, f"Error SFTP: {str(sftp_error)}"
         
         except Exception as e:
             return False, f"Error al subir archivo: {str(e)}"
@@ -302,7 +258,7 @@ class SSHClient:
         try:
             self.sftp.stat(remote_path)
             return True
-        except:
+        except (IOError, OSError):
             return False
     
     def get_file_size(self, remote_path: str) -> Optional[int]:
@@ -321,5 +277,5 @@ class SSHClient:
         try:
             stat = self.sftp.stat(remote_path)
             return stat.st_size
-        except:
+        except (IOError, OSError):
             return None
