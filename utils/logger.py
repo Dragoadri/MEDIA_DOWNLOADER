@@ -13,7 +13,7 @@ def setup_logging() -> logging.Logger:
     log_dir.mkdir(exist_ok=True)
     log_file = log_dir / "app.log"
 
-    root_logger = logging.getLogger("media_downloader")
+    root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
 
     # Avoid duplicate handlers on re-init

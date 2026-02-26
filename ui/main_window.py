@@ -25,7 +25,7 @@ from config import (
     WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_X, WINDOW_Y,
     MATRIX_COLORS
 )
-from download.progress_hook import DownloadProgressHook
+from download.progress_hook import DownloadProgressHook, DownloadCancelled
 from download.downloader import YouTubeDownloader
 from download.transcriber import AudioTranscriber
 from utils.validators import InputValidator
@@ -280,7 +280,7 @@ class YouTubeDownloaderApp(QMainWindow):
         self.progress.update_progress(0, "DESCARGANDO...")
 
         # -- Progress hook --
-        self.progress_hook = DownloadProgressHook()
+        self.progress_hook = DownloadProgressHook(cancel_event=self._cancel_event)
         self.progress_hook.progress.connect(self.progress.update_progress)
 
         # Reset cancel event
@@ -563,10 +563,15 @@ class YouTubeDownloaderApp(QMainWindow):
                     title
                 )
 
+        except DownloadCancelled:
+            logger.info("Download cancelled by user")
+            self.download_signals.message.emit("Descarga cancelada", "warning")
+            self.download_signals.download_finished.emit(
+                False, "Descarga cancelada por el usuario", ""
+            )
         except Exception as e:
             error_msg = str(e)
             logger.exception("Error during download")
-            self.progress_hook.progress.emit(0, f"Error: {error_msg}")
             self.download_signals.message.emit(
                 f"Error en la descarga: {error_msg}", "error"
             )
