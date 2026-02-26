@@ -9,9 +9,8 @@ from PySide6.QtWidgets import (
     QPushButton, QLineEdit, QLabel, QMessageBox
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
 from utils.ssh_client import SSHClient
-from config import MATRIX_COLORS
+from ui.widgets.styles import select_button_style, cancel_button_style, action_button_style
 
 
 class SSHBrowserDialog(QDialog):
@@ -40,95 +39,9 @@ class SSHBrowserDialog(QDialog):
             self.connect_and_load()
 
     def apply_matrix_theme(self):
-        """Aplica el tema Matrix al diálogo"""
-        mc = MATRIX_COLORS
-        self.setStyleSheet(f"""
-            QDialog {{
-                background-color: {mc['background']};
-                color: {mc['text']};
-            }}
-            QLineEdit {{
-                padding: 10px;
-                border: 1px solid {mc['border_dim']};
-                border-radius: 4px;
-                font-size: 11pt;
-                background-color: {mc['background_secondary']};
-                color: {mc['text']};
-                font-family: 'Consolas', 'Monaco', monospace;
-            }}
-            QLineEdit:focus {{
-                border: 1px solid {mc['accent']};
-                background-color: {mc['background_tertiary']};
-            }}
-            QPushButton {{
-                padding: 10px 18px;
-                border-radius: 4px;
-                font-weight: bold;
-                background-color: {mc['background_tertiary']};
-                color: {mc['text']};
-                border: 1px solid {mc['border_dim']};
-                font-family: 'Consolas', monospace;
-            }}
-            QPushButton:hover {{
-                background-color: {mc['accent_dark']};
-                border: 1px solid {mc['accent']};
-                color: {mc['text_bright']};
-            }}
-            QPushButton:pressed {{
-                background-color: {mc['background_secondary']};
-            }}
-            QTreeWidget {{
-                background-color: {mc['background']};
-                color: {mc['text']};
-                border: 1px solid {mc['border_dim']};
-                border-radius: 4px;
-                font-size: 11pt;
-                font-family: 'Consolas', 'Monaco', monospace;
-            }}
-            QTreeWidget::item {{
-                padding: 6px;
-            }}
-            QTreeWidget::item:selected {{
-                background-color: {mc['accent_dark']};
-                color: {mc['text_bright']};
-            }}
-            QTreeWidget::item:hover {{
-                background-color: {mc['background_tertiary']};
-            }}
-            QTreeWidget::branch {{
-                background-color: {mc['background']};
-            }}
-            QHeaderView::section {{
-                background-color: {mc['background_secondary']};
-                color: {mc['accent']};
-                padding: 8px;
-                border: none;
-                border-bottom: 1px solid {mc['border_dim']};
-                font-weight: bold;
-            }}
-            QLabel {{
-                color: {mc['text']};
-                font-size: 11pt;
-                font-family: 'Consolas', monospace;
-            }}
-            QScrollBar:vertical {{
-                border: none;
-                background-color: {mc['background_secondary']};
-                width: 10px;
-                border-radius: 5px;
-            }}
-            QScrollBar::handle:vertical {{
-                background-color: {mc['accent_dark']};
-                border-radius: 5px;
-                min-height: 30px;
-            }}
-            QScrollBar::handle:vertical:hover {{
-                background-color: {mc['accent']};
-            }}
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
-                height: 0px;
-            }}
-        """)
+        """Aplica el tema Matrix al diálogo usando estilos centralizados"""
+        from ui.widgets.styles import dialog_stylesheet
+        self.setStyleSheet(dialog_stylesheet())
     
     def init_ui(self):
         """Inicializa la interfaz del explorador"""
@@ -167,53 +80,16 @@ class SSHBrowserDialog(QDialog):
         buttons_layout = QHBoxLayout()
 
         self.select_button = QPushButton(">> SELECCIONAR")
-        self.select_button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {MATRIX_COLORS['accent_dark']};
-                color: {MATRIX_COLORS['text_bright']};
-                font-weight: bold;
-                padding: 12px 20px;
-                border: 2px solid {MATRIX_COLORS['accent']};
-            }}
-            QPushButton:hover {{
-                background-color: {MATRIX_COLORS['accent']};
-                color: {MATRIX_COLORS['background']};
-            }}
-            QPushButton:disabled {{
-                background-color: {MATRIX_COLORS['background_tertiary']};
-                color: {MATRIX_COLORS['border_dim']};
-                border: 2px solid {MATRIX_COLORS['border_dim']};
-            }}
-        """)
+        self.select_button.setStyleSheet(select_button_style())
         self.select_button.clicked.connect(self.accept_selection)
         self.select_button.setEnabled(False)
 
         cancel_button = QPushButton("CANCELAR")
-        cancel_button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {MATRIX_COLORS['background_tertiary']};
-                color: {MATRIX_COLORS['error']};
-                border: 1px solid {MATRIX_COLORS['error']};
-            }}
-            QPushButton:hover {{
-                background-color: #330011;
-                color: #FF3366;
-            }}
-        """)
+        cancel_button.setStyleSheet(cancel_button_style())
         cancel_button.clicked.connect(self.reject)
 
         refresh_button = QPushButton("ACTUALIZAR")
-        refresh_button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {MATRIX_COLORS['background_tertiary']};
-                color: {MATRIX_COLORS['info']};
-                border: 1px solid {MATRIX_COLORS['info']};
-            }}
-            QPushButton:hover {{
-                background-color: #003344;
-                color: #00EEFF;
-            }}
-        """)
+        refresh_button.setStyleSheet(action_button_style('info'))
         refresh_button.clicked.connect(self.refresh_current_directory)
         
         buttons_layout.addWidget(refresh_button)
