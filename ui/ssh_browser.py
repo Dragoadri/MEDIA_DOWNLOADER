@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QPushButton, QLineEdit, QLabel, QMessageBox
 )
 from PySide6.QtCore import Qt
+import paramiko
 from utils.ssh_client import SSHClient
 from ui.widgets.styles import select_button_style, cancel_button_style, action_button_style
 
@@ -164,7 +165,7 @@ class SSHBrowserDialog(QDialog):
                         tree_item = QTreeWidgetItem(self.tree)
                         tree_item.setText(0, f"[DIR] {item}")
                         tree_item.setData(0, Qt.UserRole, item_path)
-                except:
+                except (IOError, OSError):
                     pass
             
             self.current_path = path
@@ -210,7 +211,7 @@ class SSHBrowserDialog(QDialog):
                 home_dir = stdout.read().decode().strip()
                 if home_dir:
                     self.load_directory(home_dir)
-            except:
+            except (paramiko.SSHException, OSError):
                 self.load_directory("/home")
         else:
             self.load_directory("/home")
