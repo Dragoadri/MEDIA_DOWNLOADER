@@ -208,11 +208,17 @@ REQUIREMENTS_FILE="$SCRIPT_DIR/requirements.txt"
 
 if [ -f "$REQUIREMENTS_FILE" ]; then
     # Crear entorno virtual si no existe
-    VENV_DIR="$SCRIPT_DIR/venv"
+    VENV_DIR="$SCRIPT_DIR/.venv"
 
     if [ ! -d "$VENV_DIR" ]; then
         print_info "Creando entorno virtual..."
         python3 -m venv "$VENV_DIR"
+    fi
+
+    # Remove old venv if .venv exists
+    if [ -d "$SCRIPT_DIR/venv" ] && [ -d "$VENV_DIR" ]; then
+        rm -rf "$SCRIPT_DIR/venv"
+        print_info "Eliminado entorno virtual antiguo (venv/)"
     fi
 
     # Activar entorno virtual e instalar dependencias

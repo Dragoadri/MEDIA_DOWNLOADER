@@ -116,17 +116,17 @@ fi
 # Activar entorno virtual
 print_step "Buscando entorno virtual..."
 
-if [ -d "venv" ]; then
-    print_ok "Entorno virtual encontrado (venv)"
-    source venv/bin/activate
-elif [ -d ".venv" ]; then
+if [ -d ".venv" ]; then
     print_ok "Entorno virtual encontrado (.venv)"
     source .venv/bin/activate
-else
-    print_warning "No se encontró entorno virtual"
-    print_info "Creando entorno virtual..."
-    python3 -m venv venv
+elif [ -d "venv" ]; then
+    print_ok "Entorno virtual encontrado (venv)"
     source venv/bin/activate
+else
+    print_warning "No se encontro entorno virtual"
+    print_info "Creando entorno virtual..."
+    python3 -m venv .venv
+    source .venv/bin/activate
     print_ok "Entorno virtual creado y activado"
 fi
 
