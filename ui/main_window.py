@@ -179,8 +179,9 @@ class YouTubeDownloaderApp(QMainWindow):
         self.ssh_tab.message.connect(self.progress.add_message)
         self.destination_tabs.currentChanged.connect(self._on_tab_changed)
 
-        # Initial tab state
-        self._on_tab_changed(0)
+        # Initial tab state — delay so widgets have valid sizeHints
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(0, lambda: self._on_tab_changed(0))
 
         # -- Keyboard shortcuts --
         QShortcut(QKeySequence("Ctrl+D"), self, activated=self.start_download)
